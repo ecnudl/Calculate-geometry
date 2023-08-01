@@ -1,0 +1,65 @@
+// 注意: double 的理论精度为 1e-15 左右
+using db = double;
+const db EPS = 1e-9;
+// using db = long double;
+// const db EPS = 1e-15;
+const db pi = acos(-1.0);
+
+inline int sign(db a) { return a < -EPS ? -1 : a > EPS; }
+inline int cmp(db a, db b) { return sign(a - b); }
+
+struct P {
+	db x, y;
+	P() {}
+	P(db _x, db _y) : x(_x), y(_y) {}
+	P operator+(P p) { return {x + p.x, y + p.y}; }
+	P operator-(P p) { return {x - p.x, y - p.y}; }
+	P operator*(db d) { return {x * d, y * d}; }
+	P operator/(db d) { return {x / d, y / d}; }
+
+	bool operator<(P p) const { 
+		int c = cmp(x, p.x);
+		if (c) return c == -1;
+		return cmp(y, p.y) == -1;
+	}
+
+	// 存在 EPS 的情况下, == 可能不具有传递性
+	bool operator==(P o) const{
+		return cmp(x, o.x) == 0 && cmp(y,o.y) == 0;
+	}
+
+	db dot(P p) { return x * p.x + y * p.y; }
+	// a x b == -(b x a) = |a||b|sine, a 沿逆时针旋转 e 度能转到 b, 逆时针为正
+	// det == 0: 0 / pi, det > 0: (0, pi), det < 0: (-pi, 0).
+	db det(P p) { return x * p.y - y * p.x; }  
+	 
+	db distTo(P p) { return (*this-p).abs(); }
+	db alpha() { return atan2(y, x); }  // 求极角 [-pi, pi]
+	// db alpha() { return atan2l(y, x); }  // long double
+	void read() { cin >> x >> y; }
+	void write() { cout << "(" << x << "," << y << ")" << endl; }
+	db abs2() { return x * x + y * y; }
+	db abs() { return sqrt(abs2()); }
+	P rot90() { return P(-y, x); }  // 逆时针转90度
+	P unit() { return *this / abs(); }  // 返回这个点的方向向量
+	int quad() const { return sign(y) == 1 || (sign(y) == 0 && sign(x) >= 0); }  // [0, pi) : 1, [pi, 2pi) : 0  
+	P rot(db an){ return {x * cos(an) - y * sin(an), x * sin(an) + y * cos(an)}; }  // 逆时针转一个角度
+};
+
+using VP = vector<P>;
+
+// 判断 p3 在 向量p1p2 的左边还是右边 
+#define cross(p1,p2,p3) ((p2.x-p1.x)*(p3.y-p1.y)-(p3.x-p1.x)*(p2.y-p1.y))  // (p1p2 x p1p3)
+#define crossOp(p1,p2,p3) sign(cross(p1,p2,p3))  // cross 的符号, 1: 左边, -1: 右边, 0: 共线
+
+// Op1 和 Op2 之间的夹角(精度很好)
+db rad(P p1, P p2) { return atan2l(p1.det(p2), p1.dot(p2)); }
+
+// 极角排序, 范围为 [-pi, pi)
+// 1 : a < b, 0 : a >= b
+// 比直接用 alpha 排序要准确, 因为 alpha 本质是 atan2.
+bool cmp(P a, P b) {
+	int qa = a.quad(), qb = b.quad();
+	if (qa != qb) return qa < qb;
+	else return sign(a.det(b)) > 0;
+}
